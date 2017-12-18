@@ -19,7 +19,7 @@ public class Room : MonoBehaviour
     private int roomNumber;
     private Vector3 roomPosition;
     private List<Key> keysOnEnter;
-    private List<Generator.Direction> passageDirections;
+    public List<Generator.Direction> passageDirections;
     private List<Key> correspondingKeys;
     private bool start;
     private bool end;

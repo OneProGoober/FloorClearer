@@ -134,54 +134,71 @@ public class Generator : MonoBehaviour
         * 4. Add random start keys to Possible Keys List (extraneous or main). (Contains the possible keys that could have come across so far).
         * 5. Add start room to Edge Room List. (List holds the latest spawned rooms that haven't had attachements added to it)
         * */
-        GameObject startRoom;
-        //1:
-        int startRoomIndex = Random.Range(0, mapSizeX*mapSizeZ);
 
-        //2:
-        List<Direction> startRoomDirections = ValidDirections(startRoomIndex);
+        SetUpStartRoom();
+
+
+
+        
+        yield return 0;
+    }
+
+
+
+    /**
+     * TODO - rewrite when completely implemented
+     * 
+     * 
+     * Start Room setup should be approximately this:
+     * 1. Pick number between 0 and mapSizeX*mapSizeZ. This is the room number for the start room.
+     * 2. Pick number 1-4 to Generate Start room. Number corresponds to the number of passages leaving the start room.
+     *    -If number is 3 or 4, ensure that room number is not on the edge of the map or in a corner respectively.
+     * 3. Assign each passage a room number to the room that it leads to.
+     * 4. Add random start keys to Possible Keys List (extraneous or main). (Contains the possible keys that could have come across so far).
+     * 5. Add start room to Edge Room List. (List holds the latest spawned rooms that haven't had attachements added to it)
+     * 
+     * */
+    private void SetUpStartRoom()
+    {
+        GameObject startRoom;
+        int startRoomIndex = Random.Range(0, mapSizeX * mapSizeZ);
+
+        List<Direction> validStartRoomDirections = ValidDirections(startRoomIndex);
+        
         int startRoomPrefabIndex = 0;
 
-        /** The possible room types that must be generated:
-         * Index:     Room Type:
-         * 
-         *  (ALL ROOMS HAVE BOTTOM ENTRANCE)
-         * 0            Dead end
-         * 1            Single door(left)
-         * 2            Single door(top)
-         * 3            Single door(right)
-         * 4            Double door(left, top)
-         * 5            Double door(top, right)
-         * 6            Double door(left, right)
-         * 7            Triple door(left, top and right)
-         * */
-         
-        if (startRoomDirections.Count == 4)
+        if (validStartRoomDirections.Count == 4)
         {
             startRoomPrefabIndex = Random.Range(0, 8);
         }
 
-        else if (startRoomDirections.Count == 3)
+        else if (validStartRoomDirections.Count == 3)
         {
             startRoomPrefabIndex = Random.Range(0, 7);
         }
 
-        else if (startRoomDirections.Count == 2)
+        else if (validStartRoomDirections.Count == 2)
         {
             startRoomPrefabIndex = Random.Range(0, 4);
         }
 
-        else if (startRoomDirections.Count == 1)
+        else if (validStartRoomDirections.Count == 1)
         {
             startRoomPrefabIndex = 0;
         }
 
         else
         {
-            Debug.Log("Start room should always have at least one valid direction. This is an error. startRoomDirections.Count: " + startRoomDirections.Count);
+            Debug.Log("Start room should always have at least one valid direction. This is an error. startRoomDirections.Count: " + validStartRoomDirections.Count);
         }
 
-
+        startRoom = roomPrefabs[startRoomPrefabIndex];
+        while (!ValidateRoomRotation(startRoom, validStartRoomDirections))
+        {
+            startRoom.GetComponent<Room>();
+            //RotateRoom(startRoomPrefabIndex);
+        }
+        
 
 
         //TODO: make sure that the room is going to only open up in the correct direction. Change the rotation if necessary.
@@ -193,10 +210,67 @@ public class Generator : MonoBehaviour
 
 
         //Instantiate(Object original, Vector3 position, Quaternion rotation);
-        startRoom = Instantiate(roomPrefabs[startRoomPrefabIndex], FindRoomPosition(startRoomIndex), roomPrefabs[startRoomPrefabIndex].transform.rotation);
+        startRoom = Instantiate(startRoom, FindRoomPosition(startRoomIndex), roomPrefabs[startRoomPrefabIndex].transform.rotation);
 
-        yield return 0;
     }
+
+    private List<Direction> RotateRoom(GameObject startroom, List<Direction> startRoomDirections)
+    {
+        //Rotate the room
+
+        //Update the directions
+        List<Direction> newDirections = new List<Direction>();
+        if(startRoomDirections.Contains(Direction.North))
+        {
+
+        }
+
+        if (startRoomDirections.Contains(Direction.East))
+        {
+
+        }
+
+        if (startRoomDirections.Contains(Direction.South))
+        {
+
+        }
+
+        if (startRoomDirections.Contains(Direction.West))
+        {
+
+        }
+
+
+        return newDirections;
+    }
+
+
+
+    /** The possible room types that must be generated:
+    * Index:     Room Type:
+    * 
+    *  (ALL ROOMS HAVE BOTTOM (South facing) ENTRANCE)
+    * 0            Dead end
+    * 1            Single door(left)
+    * 2            Single door(top)
+    * 3            Single door(right)
+    * 4            Double door(left, top)
+    * 5            Double door(top, right)
+    * 6            Double door(left, right)
+    * 7            Triple door(left, top and right)
+    * */
+    private bool ValidateRoomRotation(GameObject startroom, List<Direction> startRoomDirections)
+    {
+        
+
+        return true;
+    }
+
+
+
+
+
+
 
     /**
      * Returns the position of the room in world space given the index for the room
@@ -268,7 +342,7 @@ public class Generator : MonoBehaviour
     /**
      * Generate Random Key
      * */
-    public Key GenerateUniqueKey()
+    public Key GenerateUniqueKey(bool main)
     {
         Key uniqueKey = new Key();
         //TODO
