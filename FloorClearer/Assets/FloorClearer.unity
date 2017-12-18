@@ -302,21 +302,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6500f713d0f1f1040aaf037d4b0cc851, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapSizeX: 0
-  mapSizeZ: 0
-  roomSize: {fileID: 0}
+  mapSizeX: 5
+  mapSizeZ: 5
+  roomSize: 6
   levelSeed: 0
   roomPrefabs:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 1479391944852746, guid: 6b44a858e2bccd94c8c14e56953c4605, type: 2}
+  - {fileID: 1231205616709610, guid: 83c10660a76c2544fa103cff6ea219b3, type: 2}
+  - {fileID: 1044628379902508, guid: 19d18c7d7f345644c9776543b153a2d7, type: 2}
+  - {fileID: 1651842016088602, guid: c5e0569f6e41cae4f9e6d9ae41ccf220, type: 2}
+  - {fileID: 1992575895975934, guid: 93707652260c7144f96e276396c22488, type: 2}
+  - {fileID: 1668683679823824, guid: 1e2bdb8868d6e7c4ca26d266b6722757, type: 2}
+  - {fileID: 1050540605862294, guid: 34f3b5affa404f847bf1777d4703463a, type: 2}
+  - {fileID: 1834049684357344, guid: 00712b9be3591e64ca5942e63c81889a, type: 2}
