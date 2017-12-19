@@ -49,14 +49,23 @@ public class Generator : MonoBehaviour
     //A list with the currently created rooms
     private List<Room> createdRooms;
 
-    //A list with the current edge rooms
-    private List<Room> edgeRooms;
+    //A list with the current main edge rooms
+    private List<Room> mainEdgeRooms;
+
+    //A list with the current extraneous edge rooms
+    private List<Room> extraneousEdgeRooms;
 
     //A list that holds the indices of all vacant rooms
     private List<int> unfilledRooms;
 
+    //holds keys that open rooms along the main path
+    private List<Key> mainKeyList;
+
+    //holds keys that open rooms along the extraneous path
+    private List<Key> extraneousKeyList;
+
     //holds the current room when generating the floor
-    private Room currentRoom;
+    //private Room currentRoom;
 
 
 
@@ -71,7 +80,14 @@ public class Generator : MonoBehaviour
         //Initiate the random number generator with a particular seed. Will be used to re-access different levels.
         Random.InitState(levelSeed);
 
+        createdRooms = new List<Room>();
+        mainEdgeRooms = new List<Room>();
+        extraneousEdgeRooms = new List<Room>();
         unfilledRooms = new List<int>();
+        mainKeyList = new List<Key>();
+        extraneousKeyList = new List<Key>();
+
+
 
         //Add all rooms to the unfilledRoomsList
         for (int index = 0; index < mapSizeX * mapSizeZ; index++)
@@ -85,36 +101,8 @@ public class Generator : MonoBehaviour
         StartCoroutine(GenerateFloor());
     }
 
-
-    /**
-     * Implemented in an IEnumerator to easily see the algorithm in play when creating the floor
-     * 
-     * 
-     * Repeated Algorithm:
-     * 1. For each room in Edge Room List, if key hasn't been added to Possible Keys List (extraneous or main), add them.
-     * 2. Pick random room from Edge Room List. Set it to curr
-     * 
-     * If curr is main:
-     * 3. For each passage:
-     *    -Randomly generate a number between 1 and 3 and verify that there are at least that many adjacent rooms to fill.
-     *    -Generate a second number to determine number of extraneous passages.
-     *    -For each generated passage (1-3):
-     *      -Use curr->passage[passageNumber] (returns a room) Check room->passages and set each one to a key that is in Possible Keys List
-     *    -After each passage accounted for, add room to Edge Room List
-     *    -Add keys from that newly spawned room to the Possible Keys List (extraneous or main)
-     * 
-     * 
-     * Else: (all keys are extraneous)
-     * 3. For each passage:
-     *    -Randomly generate a number between 1 and 3 and verify that there are at least that many adjacent rooms to fill.
-     *    -For each generated passage (1-3):
-     *      -Use curr->passage[passageNumber] (returns a room) Check room->passages and set each one to a key that is in Possible Keys List(extraneous)
-     *    -After each passage accounted for, add room to Edge Room List
-     *    -Add keys from that newly spawned room to the Possible Keys List (extraneous)
-     * */
     private IEnumerator GenerateFloor()
     {
-
         SetUpStartRoom();
         
         yield return 0;
@@ -130,11 +118,6 @@ public class Generator : MonoBehaviour
      * 3. Randomly pick a prefab and validate that the prefab has the same number (or fewer) directions than validStartRoomDirections.
      * 4. Once we have a valid room prefab, ensure that no room directions are invalid. If they are, rotate the room and update the directions until they are valid.
      * 5. Instantiate the start room.
-     *    
-     * 3. Assign each passage a room number to the room that it leads to.
-     * 4. Add random start keys to Possible Keys List (extraneous or main). (Contains the possible keys that could have come across so far).
-     * 5. Add start room to Edge Room List. (List holds the latest spawned rooms that haven't had attachements added to it)
-     * 
      * */
     private void SetUpStartRoom()
     {
@@ -178,16 +161,100 @@ public class Generator : MonoBehaviour
             
             if (rotationInvalid)
             {
-                Debug.Log("Gotta rotate room");
                 RotateRoom(newRoom);
             }
         }
 
-        //TODO
-        //Room is instantiated, now to update the lists, add keys
-        //!!!! Add the position to the filled rooms list.... Figure out everything I need to update later. Tired.
-       
+        //set start to true
+        //newRoom.SetStart(true);
+
+        //Add new room to main edge list.
+        mainEdgeRooms.Add(newRoom.GetComponent<Room>());
+
+        //Add to created room list
+        createdRooms.Add(newRoom.GetComponent<Room>());
+
+        //Update unfilled rooms
+        unfilledRooms.Remove(startRoomIndex);
+
+        //Generate 1-3 Unique Keys
+        int numKeys = Random.Range(0, 3);
+
+        for(int keynumber = numKeys; keynumber < numKeys; keynumber++)
+        {
+            Key newKey =  GenerateUniqueKey(true);
+            mainKeyList.Add(newKey);
+        }
+        
     }
+
+
+    /**
+     * Repeated Algorithm:
+     * 1. For each room in Edge Room List, if key hasn't been added to Possible Keys List (extraneous or main), add them.
+     * 2. Pick random room from Edge Room List. Set it to curr
+     * 
+     * If curr is main:
+     * 3. For each passage:
+     *    -Randomly generate a number between 1 and 3 and verify that there are at least that many adjacent rooms to fill.
+     *    -Generate a second number to determine number of extraneous passages.
+     *    -For each generated passage (1-3):
+     *      -Use curr->passage[passageNumber] (returns a room) Check room->passages and set each one to a key that is in Possible Keys List
+     *    -After each passage accounted for, add room to Edge Room List
+     *    -Add keys from that newly spawned room to the Possible Keys List (extraneous or main)
+     * 
+     * 
+     * Else: (all keys are extraneous)
+     * 3. For each passage:
+     *    -Randomly generate a number between 1 and 3 and verify that there are at least that many adjacent rooms to fill.
+     *    -For each generated passage (1-3):
+     *      -Use curr->passage[passageNumber] (returns a room) Check room->passages and set each one to a key that is in Possible Keys List(extraneous)
+     *    -After each passage accounted for, add room to Edge Room List
+     *    -Add keys from that newly spawned room to the Possible Keys List (extraneous)
+     * */
+    private void CreateRoom()
+    {
+        int edgeRoomToModify = -1;
+        bool mainExtraneous = false;
+
+        do
+        {
+            edgeRoomToModify = Random.Range(0, extraneousEdgeRooms.Count + mainEdgeRooms.Count);
+
+        }
+        while (GetRoom(edgeRoomToModify) != null);
+
+        Room roomToModify = GetRoom(edgeRoomToModify);
+        
+        //determine if main or extraneous
+        //mainExtraneous = roomToModify.
+
+
+        //lock the room with existing key
+
+        //THEN make a new key. Order is important.
+
+
+
+        //get the passages and modify each passage.
+        //roomToModify.passageDirections
+
+            //we make a new room for each passage.
+
+
+        //For each passage accounted for, add room to: created and appropriate edge list
+        //Remove from unfilled rooms
+    }
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Check to see if there is some valid rotation for the room prefab.
@@ -301,10 +368,6 @@ public class Generator : MonoBehaviour
         return roomIndex;
     }
 
-
-
-
-
     /**
      * Returns the position of the room in world space given the index for the room
      * */
@@ -318,6 +381,25 @@ public class Generator : MonoBehaviour
         Vector3 roomPosition = new Vector3(row*width , 0f, column*width);
         return roomPosition;
     }
+
+    /**
+     * Returns the room given an index
+     * */
+    private Room GetRoom(int roomIndex)
+    {
+        if (!unfilledRooms.Contains(roomIndex))
+        {
+            foreach (var room in createdRooms)
+            {
+                if(room.GetRoomNumber() == roomIndex)
+                {
+                    return room;
+                }
+            }
+        }
+        return null;
+    }
+
 
 
     /**
@@ -378,6 +460,40 @@ public class Generator : MonoBehaviour
     public Key GenerateUniqueKey(bool main)
     {
         Key uniqueKey = new Key();
+        int keyNumber = Random.Range(0, mapSizeX * mapSizeX * mapSizeZ);
+
+        if(main)
+        {
+            float percentChance = Random.Range(0.0f, 100.0f);
+            if(percentChance <= 5 /*mainThreshold*/) //some % chance that the key is main/extraneous
+            {
+                //make a main key
+            }
+            else
+            {
+                //make an extraneous key
+            }
+
+            //can generate main and extraneous
+        }
+
+        else
+        {
+            //only extraneous keys
+        }
+        uniqueKey.SetKeyStats(keyNumber, main);
+
+        if(mainKeyList.Contains(uniqueKey) || extraneousKeyList.Contains(uniqueKey))
+        {
+            // need to do in while... GenerateUniqueKey(main);
+        }
+        else
+        {
+            //it's unique.
+        }
+
+
+
         //TODO
         //ensure that it is unique. Set extraneous or main.
         return uniqueKey;

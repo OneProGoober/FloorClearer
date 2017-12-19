@@ -11,7 +11,7 @@ public class Room : MonoBehaviour
      *  -Room Position
      *  -Keys obtained on entering
      *  -List of passages
-     *  -Keys in the corresponding order for those passages (NULL if no key for a particular passageway)
+     *  -Keys to unlock the room
      *  -Start room identifier
      *  -End room identifier
      *  -Extraneous or main identifier
@@ -20,14 +20,18 @@ public class Room : MonoBehaviour
     private Vector3 roomPosition;
     private List<Key> keysOnEnter;
     public List<Generator.Direction> passageDirections;
-    private List<Key> correspondingKeys;
+    private Key keyToUnlock;
     private bool start;
     private bool end;
     private bool mainPath;
 
     public void SetRoomStats()
     {
-
+        //SetRoomNumber();
+        //SetRoomPosition();
+        //SetKeysOnEnter();
+        //SetStart();
+        //SetEnd();
     }
 
     public int GetRoomNumber()
@@ -35,4 +39,33 @@ public class Room : MonoBehaviour
         return roomNumber;
     }
 
+    public void SetRoomNumber(int number)
+    {
+        this.roomNumber = number;
+    }
+
+    public void SetRoomPosition(Vector3 position)
+    {
+        this.roomPosition = position;
+    }
+
+    public void SetKeysOnEnter(List<Key> keys)
+    {
+        this.keysOnEnter = keys;
+    }
+
+    public void SetKeyToUnlock(Key unlockKey)
+    {
+        this.keyToUnlock = unlockKey;
+    }
+
+    public void SetStart(bool start)
+    {
+        this.start = start;
+    }
+
+    public void SetEnd(bool end)
+    {
+        this.end = end;
+    }
 }
