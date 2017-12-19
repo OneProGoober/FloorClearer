@@ -305,7 +305,7 @@ MonoBehaviour:
   mapSizeX: 5
   mapSizeZ: 5
   roomSize: 6
-  levelSeed: 0
+  levelSeed: 2333
   roomPrefabs:
   - {fileID: 1479391944852746, guid: 6b44a858e2bccd94c8c14e56953c4605, type: 2}
   - {fileID: 1231205616709610, guid: 83c10660a76c2544fa103cff6ea219b3, type: 2}

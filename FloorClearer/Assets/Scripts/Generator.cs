@@ -19,13 +19,13 @@ public class Generator : MonoBehaviour
     //Length of the map
     public int mapSizeZ;
 
-    //The locaclScale for each room prefab
+    //The localScale for each room prefab
     public float roomSize;
 
     //the offset from 0 to the player's feet
     private float floorThickness;
 
-    public  int levelSeed;
+    public int levelSeed;
 
     /**
      * All GameObjects associated with the game. This includes the main and extraneous keys and rooms + room prefabs
@@ -74,7 +74,7 @@ public class Generator : MonoBehaviour
         unfilledRooms = new List<int>();
 
         //Add all rooms to the unfilledRoomsList
-        for(int index = 0; index < mapSizeX*mapSizeZ; index++)
+        for (int index = 0; index < mapSizeX * mapSizeZ; index++)
         {
             unfilledRooms.Add(index);
         }
@@ -89,15 +89,6 @@ public class Generator : MonoBehaviour
     /**
      * Implemented in an IEnumerator to easily see the algorithm in play when creating the floor
      * 
-     * Algorithm:
-     * 
-     * Start Room Portion:
-     * 1. Pick number between 0 and mapSizeX*mapSizeZ. This is the room number for the start room.
-     * 2. Pick number 1-4 to Generate Start room. Number corresponds to the number of passages leaving the start room.
-     *    -If number is 3 or 4, ensure that room number is not on the edge of the map or in a corner respectively.
-     * 3. Assign each passage a room number to the room that it leads to.
-     * 4. Add random start keys to Possible Keys List (extraneous or main). (Contains the possible keys that could have come across so far).
-     * 5. Add start room to Edge Room List. (List holds the latest spawned rooms that haven't had attachements added to it)
      * 
      * Repeated Algorithm:
      * 1. For each room in Edge Room List, if key hasn't been added to Possible Keys List (extraneous or main), add them.
@@ -123,23 +114,8 @@ public class Generator : MonoBehaviour
      * */
     private IEnumerator GenerateFloor()
     {
-        /**
-        * Start Room Portion:
-        * 1. Pick number between 0 and mapSizeX*mapSizeZ. This is the room number for the start room.
-        * 2. Pick number 1-4 to Generate Start room. Number corresponds to the number of passages leaving the start room.
-        *    -If number is 3 or 4, ensure that room number is not on the edge of the map or in a corner respectively.
-        *    
-        *    ESSENTIALLY DONE WITH The ABOVE SO FAR..
-        *    
-        * 3. Assign each passage a room number to the room that it leads to.
-        * 4. Add random start keys to Possible Keys List (extraneous or main). (Contains the possible keys that could have come across so far).
-        * 5. Add start room to Edge Room List. (List holds the latest spawned rooms that haven't had attachements added to it)
-        * */
 
         SetUpStartRoom();
-
-
-
         
         yield return 0;
     }
@@ -170,83 +146,164 @@ public class Generator : MonoBehaviour
         List<Direction> validStartRoomDirections = ValidDirections(startRoomIndex);
         
         int startRoomPrefabIndex = 0;
+        
+        bool validRotationExists = false;
+        bool prefabInvalid = true;
+        bool rotationInvalid = true;
 
-        bool needValidPrefab = true;
-        while(needValidPrefab)
+        while(prefabInvalid)
         {
             startRoomPrefabIndex = Random.Range(0, 8);
+            Debug.Log("prefabindex:" + startRoomPrefabIndex);
             startRoom = roomPrefabs[startRoomPrefabIndex];
-            passageDirections = startRoom.GetComponent<Room>().passageDirections;
-            if (passageDirections.Count == 0)
+            if(newRoom != null)
             {
-                Debug.Log(passageDirections.Count + " is invalid");
+                Destroy(newRoom);
             }
-            
-            if(passageDirections.Count <= validStartRoomDirections.Count)
+            newRoom = Instantiate(startRoom, FindRoomPosition(startRoomIndex), startRoom.transform.rotation);
+            passageDirections = newRoom.GetComponent<Room>().passageDirections;
+
+            validRotationExists = CheckIfValidRotationExists(passageDirections, validStartRoomDirections);
+
+            if (validRotationExists)
             {
-                needValidPrefab = false;
+                prefabInvalid = false;
+                Debug.Log("Prefab used: " + newRoom + " at location: " + startRoomIndex);
             }
         }
         
-        while (!IsRotationValid(startRoom, validStartRoomDirections))
+        while (rotationInvalid)
         {
-            RotateRoom(startRoom);
+            rotationInvalid = !CheckIfCorrectOrientation(newRoom.GetComponent<Room>().passageDirections, validStartRoomDirections);
+            
+            if (rotationInvalid)
+            {
+                Debug.Log("Gotta rotate room");
+                RotateRoom(newRoom);
+            }
         }
-        
-        //Instantiate(Object original, Vector3 position, Quaternion rotation);
-        newRoom = Instantiate(startRoom, FindRoomPosition(startRoomIndex), startRoom.transform.rotation);
 
-
+        //TODO
+        //Room is instantiated, now to update the lists, add keys
+        //!!!! Add the position to the filled rooms list.... Figure out everything I need to update later. Tired.
+       
     }
 
-    private bool IsRotationValid(GameObject startroom, List<Direction> validStartRoomDirections)
+    /**
+     * Check to see if there is some valid rotation for the room prefab.
+     * -Ensures that there are no issues when the start room is at the corner of the map
+     * -Changes the directions of the passages for the room prefab in order to determine if there is a valid orientation.
+     * */
+    private bool CheckIfValidRotationExists(List<Direction> passageDirections, List<Direction> validStartRoomDirections)
     {
-        List<Direction> passageDirections = startroom.GetComponent<Room>().passageDirections;
+        if(validStartRoomDirections.Count < passageDirections.Count)
+        {
+            return false;
+        }
 
+        for(int orientation = 0; orientation < 4; orientation++)
+        {
+            if (CheckIfCorrectOrientation(passageDirections, validStartRoomDirections))
+            {
+                return true;
+            }
+
+            //update the passage directions with the next orientation (rotated 90 degrees)
+            passageDirections = ChangeDirections(passageDirections);
+        }
+
+        //Even though the count of passages for the room prefab is not larger than the possible valid directions, no correct orientation exists for this prefab.
+        return false;
+    }
+
+    /**
+     * Returns false if the potential room passages don't contain all prefab directions.
+     * Checks all entries in the list unless the passage direction is invalid.
+     * */
+    private bool CheckIfCorrectOrientation(List<Direction> passageDirections, List<Direction> validStartRoomDirections)
+    {
         foreach (var passageDirection in passageDirections)
         {
-            //If the potential room passages don't contain all prefab directions, then the rotation needs to be changed.
             if (!validStartRoomDirections.Contains(passageDirection))
             {
                 return false;
             }
         }
-        Debug.Log("Seems like the rotations are all fine: passageDirections: " + passageDirections + " validDirections: " + validStartRoomDirections);
         return true;
     }
 
+    /**
+     * Rotates the prefab by 90 degrees along the Y axis and calls another function to update the passage directions
+     * */
     private void RotateRoom(GameObject startRoom)
     {
-        List<Direction> originalDirections = startRoom.GetComponent<Room>().passageDirections;
+        startRoom.transform.Rotate(0, 90, 0);
+        startRoom.GetComponent<Room>().passageDirections = ChangeDirections(startRoom.GetComponent<Room>().passageDirections);
+    }
+    
+    /**
+     * Returns a copy of the inputed list with the directions rotated one direction clockwise. 
+     * */
+    private List<Direction> ChangeDirections(List<Direction> directionsToChange)
+    {
+        //Update the directions. Each 90 degree rotation is rotates the directions one direction "clockwise".
         List<Direction> newDirections = new List<Direction>();
 
-        //Rotate the room clockwise by 90 degrees
-        startRoom.transform.Rotate(0, 90, 0);
-
-        //Update the directions. Each 90 degree rotation is rotates the directions one direction "clockwise".
-        if (originalDirections.Contains(Direction.North))
+        if (directionsToChange.Contains(Direction.North))
         {
             newDirections.Add(Direction.East);
         }
 
-        if (originalDirections.Contains(Direction.East))
+        if (directionsToChange.Contains(Direction.East))
         {
             newDirections.Add(Direction.South);
         }
 
-        if (originalDirections.Contains(Direction.South))
+        if (directionsToChange.Contains(Direction.South))
         {
             newDirections.Add(Direction.West);
         }
 
-        if (originalDirections.Contains(Direction.West))
+        if (directionsToChange.Contains(Direction.West))
         {
             newDirections.Add(Direction.North);
         }
-
-        startRoom.GetComponent<Room>().passageDirections = newDirections;
+        return newDirections;
     }
-    
+
+    /**
+     * Takes in a room instance and an input direction and returns the index of the room that the passage leads to
+     * */
+    private int GetRoomIndexFromDirection(Room room, Direction passageDirection)
+    {
+        int currentRoomNumber = room.GetRoomNumber();
+        int roomIndex = -1;
+
+        if(passageDirection.Equals(Direction.South))
+        {
+            roomIndex = currentRoomNumber + mapSizeX;
+        }
+
+        if (passageDirection.Equals(Direction.North))
+        {
+            roomIndex = currentRoomNumber - mapSizeX;
+        }
+
+        if (passageDirection.Equals(Direction.East))
+        {
+            roomIndex = currentRoomNumber + 1;
+        }
+
+        if (passageDirection.Equals(Direction.West))
+        {
+            roomIndex = currentRoomNumber - 1;
+        }
+        return roomIndex;
+    }
+
+
+
+
 
     /**
      * Returns the position of the room in world space given the index for the room

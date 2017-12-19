@@ -30,6 +30,9 @@ public class Room : MonoBehaviour
 
     }
 
-
+    public int GetRoomNumber()
+    {
+        return roomNumber;
+    }
 
 }
