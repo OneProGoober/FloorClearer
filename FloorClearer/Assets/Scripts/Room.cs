@@ -19,7 +19,7 @@ public class Room : MonoBehaviour
     private int roomNumber;
     private Vector3 roomPosition;
     private List<Key> keysOnEnter;
-    public List<Generator.Direction> passageDirections;
+    private List<Generator.Direction> passageDirections;
     private Key keyToUnlock;
     private bool start;
     private bool end;
@@ -34,9 +34,25 @@ public class Room : MonoBehaviour
         //SetEnd();
     }
 
+    public List<Generator.Direction> GetPassageDirections()
+    {
+        return passageDirections;
+    }
+
+    public void SetPassageDirections(List<Generator.Direction> newDirections)
+    {
+        this.passageDirections = newDirections;
+    }
+
+
     public int GetRoomNumber()
     {
         return roomNumber;
+    }
+
+    public bool GetStart()
+    {
+        return start;
     }
 
     public void SetRoomNumber(int number)

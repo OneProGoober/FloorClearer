@@ -121,73 +121,7 @@ public class Generator : MonoBehaviour
      * */
     private void SetUpStartRoom()
     {
-        GameObject newRoom = null;
-        GameObject startRoom = null;
-        List<Direction> passageDirections = null;
-        int startRoomIndex = Random.Range(0, mapSizeX * mapSizeZ);
-
-        List<Direction> validStartRoomDirections = ValidDirections(startRoomIndex);
-        
-        int startRoomPrefabIndex = 0;
-        
-        bool validRotationExists = false;
-        bool prefabInvalid = true;
-        bool rotationInvalid = true;
-
-        while(prefabInvalid)
-        {
-            startRoomPrefabIndex = Random.Range(0, 8);
-            Debug.Log("prefabindex:" + startRoomPrefabIndex);
-            startRoom = roomPrefabs[startRoomPrefabIndex];
-            if(newRoom != null)
-            {
-                Destroy(newRoom);
-            }
-            newRoom = Instantiate(startRoom, FindRoomPosition(startRoomIndex), startRoom.transform.rotation);
-            passageDirections = newRoom.GetComponent<Room>().passageDirections;
-
-            validRotationExists = CheckIfValidRotationExists(passageDirections, validStartRoomDirections);
-
-            if (validRotationExists)
-            {
-                prefabInvalid = false;
-                Debug.Log("Prefab used: " + newRoom + " at location: " + startRoomIndex);
-            }
-        }
-        
-        while (rotationInvalid)
-        {
-            rotationInvalid = !CheckIfCorrectOrientation(newRoom.GetComponent<Room>().passageDirections, validStartRoomDirections);
-            
-            if (rotationInvalid)
-            {
-                RotateRoom(newRoom);
-            }
-        }
-
-        //set start to true
-        //newRoom.SetStart(true);
-
-        //Add new room to main edge list.
-        mainEdgeRooms.Add(newRoom.GetComponent<Room>());
-
-        //Add to created room list
-        createdRooms.Add(newRoom.GetComponent<Room>());
-
-        //Update unfilled rooms
-        unfilledRooms.Remove(startRoomIndex);
-
-        //Generate 1-3 Unique Keys
-        int numKeys = Random.Range(0, 3);
-
-        for(int keynumber = numKeys; keynumber < numKeys; keynumber++)
-        {
-            Key newKey =  GenerateUniqueKey(true);
-            mainKeyList.Add(newKey);
-        }
-        
     }
-
 
     /**
      * Repeated Algorithm:
@@ -212,46 +146,186 @@ public class Generator : MonoBehaviour
      *    -After each passage accounted for, add room to Edge Room List
      *    -Add keys from that newly spawned room to the Possible Keys List (extraneous)
      * */
-    private void CreateRoom()
+    private void HandleRoom()
     {
-        int edgeRoomToModify = -1;
-        bool mainExtraneous = false;
+        /*
+         * START OF VARIABLES
+         * */
 
-        do
+        Room currentRoom = null;
+        Room newRoom = new Room();
+
+        List<GameObject> roomsForAllPassages = new List<GameObject>();
+
+        int roomIndex = -1;
+        int currentRoomIndex = -1;
+
+
+        /*
+         * END OF VARIABLES
+         * */
+
+
+        //Create Start Room if needed:
+        if (createdRooms.Count != 0)
         {
-            edgeRoomToModify = Random.Range(0, extraneousEdgeRooms.Count + mainEdgeRooms.Count);
-
+            //START ROOM
+            roomIndex = Random.Range(0, mapSizeX * mapSizeZ);
+            roomsForAllPassages.Add(CreateRoom(roomIndex));
         }
-        while (GetRoom(edgeRoomToModify) != null);
+        
+        //NOT START ROOM. NOTE: If start room was just created last CreateRoom(), Random.Range(0,1) will return 0 (the start room).
+        else
+        {
+            do
+            {
+                currentRoomIndex = Random.Range(0, extraneousEdgeRooms.Count + mainEdgeRooms.Count);
 
-        Room roomToModify = GetRoom(edgeRoomToModify);
+            }
+            while (GetFilledRoom(currentRoomIndex) != null);
+
+            currentRoom = GetFilledRoom(currentRoomIndex);
+
+            //lock the room entrance
+
+            //spawn the new keys for the room
+
+
+
+
+
+            //update passages with new rooms
+            foreach (var passage in currentRoom.GetPassageDirections())
+            {
+                roomIndex = GetRoomIndexFromDirection(currentRoom, passage);
+                roomsForAllPassages.Add(CreateRoom(roomIndex));
+
+
+                //TODO, add to list and other things..
+            }
+        }
+
+
+
+
+
+        /*
+         
+
+        //set start to true
+        newRoomPrefab.GetComponent<Room>().SetStart(true);
+
+        //set end to false - by default all are false
+        //newRoom.GetComponent<Room>().SetEnd(false);
+
+        //Add new room to main edge list.
+        mainEdgeRooms.Add(newRoomPrefab.GetComponent<Room>());
+
+        //Add to created room list
+        createdRooms.Add(newRoomPrefab.GetComponent<Room>());
+
+        //Update unfilled rooms
+        unfilledRooms.Remove(roomIndex);
+
+        //Generate 1-3 Unique Keys
+        List<Key> roomKeys = GenerateKeys();
+        foreach (var key in roomKeys)
+        {
+            mainKeyList.Add(key);
+        }
+
+
         
         //determine if main or extraneous
         //mainExtraneous = roomToModify.
 
 
         //lock the room with existing key
+        if (!roomToModify.GetStart())
+        {
+            //roomToModify.LockRoom();
+            //this is NOT the start room = lock it with a key
+        }
 
-        //THEN make a new key. Order is important.
+        //THEN make new keys. Order is important.
 
 
 
         //get the passages and modify each passage.
-        //roomToModify.passageDirections
+        List<Direction> roomBranches = roomToModify.passageDirections;
 
-            //we make a new room for each passage.
+        //we make a new room for each passage.
 
 
         //For each passage accounted for, add room to: created and appropriate edge list
-        //Remove from unfilled rooms
+        //Remove from unfilled rooms and edge room when all passages are accounted for.
+
+        
+        */
+        
+
     }
 
+    /**
+     * Places a room in the correct position given the roomIndex with the rotation matching its valid directions
+     * 
+     * */
+    private GameObject CreateRoom(int roomIndex)
+    {
+        /*
+         * START OF VARIABLES
+         * */
 
+        GameObject newRoomPrefab = null;
+        GameObject newRoomGO = null;
 
+        List<Direction> passageDirections = null;
+        List<Direction> validRoomDirections = null;
 
+        bool validRotationExists = false;
+        bool prefabInvalid = true;
+        bool rotationInvalid = true;
 
+        int prefabIndex = -1;
 
+        /*
+         * END OF VARIABLES
+         * */
+         
+        validRoomDirections = ValidDirections(roomIndex);
 
+        while (prefabInvalid)
+        {
+            prefabIndex = Random.Range(0, 8);
+            //Debug.Log("prefabindex:" + prefabIndex);
+            newRoomGO = roomPrefabs[prefabIndex];
+            if (newRoomPrefab != null)
+            {
+                Destroy(newRoomPrefab);
+            }
+            newRoomPrefab = Instantiate(newRoomGO, FindRoomPosition(roomIndex), newRoomGO.transform.rotation);
+            passageDirections = newRoomPrefab.GetComponent<Room>().GetPassageDirections();
+
+            validRotationExists = CheckIfValidRotationExists(passageDirections, validRoomDirections);
+
+            if (validRotationExists)
+            {
+                prefabInvalid = false;
+                Debug.Log("Prefab used: " + newRoomPrefab + " at location: " + roomIndex);
+            }
+        }
+
+        while (rotationInvalid)
+        {
+            rotationInvalid = !CheckIfCorrectOrientation(newRoomPrefab.GetComponent<Room>().GetPassageDirections(), validRoomDirections);
+
+            if (rotationInvalid)
+            {
+                RotateRoom(newRoomPrefab);
+            }
+        }
+        return newRoomPrefab;
+    }
 
 
 
@@ -305,7 +379,7 @@ public class Generator : MonoBehaviour
     private void RotateRoom(GameObject startRoom)
     {
         startRoom.transform.Rotate(0, 90, 0);
-        startRoom.GetComponent<Room>().passageDirections = ChangeDirections(startRoom.GetComponent<Room>().passageDirections);
+        startRoom.GetComponent<Room>().SetPassageDirections(ChangeDirections(startRoom.GetComponent<Room>().GetPassageDirections()));
     }
     
     /**
@@ -385,7 +459,7 @@ public class Generator : MonoBehaviour
     /**
      * Returns the room given an index
      * */
-    private Room GetRoom(int roomIndex)
+    private Room GetFilledRoom(int roomIndex)
     {
         if (!unfilledRooms.Contains(roomIndex))
         {
@@ -408,6 +482,11 @@ public class Generator : MonoBehaviour
      */
         private bool CheckIfValidPlacement(int index)
         {
+            if(index < 0 || index >= mapSizeX*mapSizeZ)
+            {
+            return false;
+            }
+
             if(unfilledRooms.Contains(index))
             {
                 return true;
@@ -453,6 +532,23 @@ public class Generator : MonoBehaviour
 
         return validDirections;
     }
+
+    public List<Key> GenerateKeys()
+    {
+        int numKeys = Random.Range(0, 3);
+        List<Key> keyList = new List<Key>();
+
+        for (int keynumber = numKeys; keynumber < numKeys; keynumber++)
+        {
+            Key newKey = GenerateUniqueKey(true);
+            keyList.Add(newKey);
+            //mainKeyList.Add(newKey);
+        }
+
+        return keyList;
+    }
+
+
 
     /**
      * Generate Random Key
