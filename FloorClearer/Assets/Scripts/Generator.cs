@@ -27,6 +27,10 @@ public class Generator : MonoBehaviour
 
     public int levelSeed;
 
+    private int mainRoomCount = 0;
+
+    private int extraneousRoomCount = 0;
+
     /**
      * All GameObjects associated with the game. This includes the main and extraneous keys and rooms + room prefabs
      */
@@ -98,7 +102,27 @@ public class Generator : MonoBehaviour
         //floorThickness = floor.transform.localScale.y;
         floorThickness = .5f;
 
+
+
+        /**
+         * 1. Make room target. 75% - 100% of total indices
+         * 2. Main rooms = target/3
+         * 3. Extraneous rooms = target - Main Rooms (+3 at max depending on Randomness)
+         * 4. When target is hit or the size of the floor has 3 indices left, call a function called "CreateEndRooms"
+         * 
+         * */
+
+
+
+
+
+
+
+
+
+
         StartCoroutine(GenerateFloor());
+
     }
 
     private IEnumerator GenerateFloor()
@@ -160,6 +184,8 @@ public class Generator : MonoBehaviour
         int roomIndex = -1;
         int currentRoomIndex = -1;
 
+        bool startRoom = false;
+
 
         /*
          * END OF VARIABLES
@@ -170,10 +196,11 @@ public class Generator : MonoBehaviour
         if (createdRooms.Count != 0)
         {
             //START ROOM
+            startRoom = true;
             roomIndex = Random.Range(0, mapSizeX * mapSizeZ);
             roomsForAllPassages.Add(CreateRoom(roomIndex));
         }
-        
+
         //NOT START ROOM. NOTE: If start room was just created last CreateRoom(), Random.Range(0,1) will return 0 (the start room).
         else
         {
@@ -186,11 +213,36 @@ public class Generator : MonoBehaviour
 
             currentRoom = GetFilledRoom(currentRoomIndex);
 
+
+
+
+            //determine main/extraneous and update the count
+            if (currentRoom.GetMainPath())
+            {
+                //room must be set to main
+
+                //have bool to spawn end?
+
+            }
+            else
+            {
+                //randomly set to main or extraneous depending on how many rooms are on the edge lists
+
+                if (mainEdgeRooms.Count > 0)
+                {
+
+                }
+                else
+                {
+                    //must spawn main path or end floor creation completely.
+                }
+            }
+
             //lock the room entrance
 
             //spawn the new keys for the room
 
-
+            //generateuniquekey(bool main);
 
 
 
@@ -200,32 +252,44 @@ public class Generator : MonoBehaviour
                 roomIndex = GetRoomIndexFromDirection(currentRoom, passage);
                 roomsForAllPassages.Add(CreateRoom(roomIndex));
 
+                //For each passage accounted for, add room to: created and appropriate edge list
+                //Remove from unfilled rooms and edge room when all passages are accounted for.
+
 
                 //TODO, add to list and other things..
             }
         }
 
 
+        foreach (var room in roomsForAllPassages)
+        {
+            if (startRoom)
+            {
+                //set start to true
+                room.GetComponent<Room>().SetStart(true);
+                room.GetComponent<Room>().SetMainPath(true);
 
+                //Add new room to main edge list.
+                mainEdgeRooms.Add(room.GetComponent<Room>());
+
+                //Add to created room list
+                createdRooms.Add(room.GetComponent<Room>());
+
+                //Update unfilled rooms
+                unfilledRooms.Remove(room.GetComponent<Room>().GetRoomNumber());
+
+            }
+
+        }
 
 
         /*
          
 
-        //set start to true
-        newRoomPrefab.GetComponent<Room>().SetStart(true);
-
-        //set end to false - by default all are false
+        //set end to false - work on this later when we implement the counters for extraneous and main
         //newRoom.GetComponent<Room>().SetEnd(false);
 
-        //Add new room to main edge list.
-        mainEdgeRooms.Add(newRoomPrefab.GetComponent<Room>());
-
-        //Add to created room list
-        createdRooms.Add(newRoomPrefab.GetComponent<Room>());
-
-        //Update unfilled rooms
-        unfilledRooms.Remove(roomIndex);
+        
 
         //Generate 1-3 Unique Keys
         List<Key> roomKeys = GenerateKeys();
@@ -233,8 +297,6 @@ public class Generator : MonoBehaviour
         {
             mainKeyList.Add(key);
         }
-
-
         
         //determine if main or extraneous
         //mainExtraneous = roomToModify.
@@ -248,21 +310,17 @@ public class Generator : MonoBehaviour
         }
 
         //THEN make new keys. Order is important.
-
-
-
-        //get the passages and modify each passage.
-        List<Direction> roomBranches = roomToModify.passageDirections;
-
-        //we make a new room for each passage.
-
-
-        //For each passage accounted for, add room to: created and appropriate edge list
-        //Remove from unfilled rooms and edge room when all passages are accounted for.
-
         
+
+        If on the main path, ensure there is at least 1 main key at all times when creating new keys.
+
+
+
+
+
+
         */
-        
+
 
     }
 
@@ -326,10 +384,7 @@ public class Generator : MonoBehaviour
         }
         return newRoomPrefab;
     }
-
-
-
-
+    
     /**
      * Check to see if there is some valid rotation for the room prefab.
      * -Ensures that there are no issues when the start room is at the corner of the map
@@ -547,6 +602,22 @@ public class Generator : MonoBehaviour
 
         return keyList;
     }
+
+
+
+
+
+    private bool RandomizeMainExtraneous()
+    {
+        float percentChance = Random.Range(0.0f, 100.0f);
+        if (percentChance <= 5 /*mainThreshold*/) //some % chance that the key is main/extraneous
+        {
+            //make a main key
+        }
+
+        return false;
+    }
+
 
 
 

@@ -44,6 +44,15 @@ public class Room : MonoBehaviour
         this.passageDirections = newDirections;
     }
 
+    public bool GetMainPath()
+    {
+        return mainPath;
+    }
+
+    public void SetMainPath(bool mainPath)
+    {
+        this.mainPath = mainPath;
+    }
 
     public int GetRoomNumber()
     {
