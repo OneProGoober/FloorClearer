@@ -236,56 +236,60 @@ public class Generator : MonoBehaviour
 
             currentRoom = GetFilledRoom(currentRoomIndex);
 
-            //GenerateRoomTypeFromCurrentRoom(currentRoom);
+            
 
 
             //lock the room entrance
             if(currentRoom.GetMainPath())
             {
-                //can only lock room with mainKeys
-                //remove a random main key from the list.
-                Key lockingKey = mainKeyList[Random.Range(0, mainKeyList.Count)];
-                mainKeyList.Remove(lockingKey);
-                currentRoom.LockRoom(lockingKey);
+                if(!currentRoom.GetStart())
+                {
+                    //can only lock room with mainKeys
+                    //remove a random main key from the list.
+                    Key lockingKey = mainKeyList[Random.Range(0, mainKeyList.Count)];
+                    mainKeyList.Remove(lockingKey);
+                    currentRoom.LockRoom(lockingKey);
 
-                //spawn either type of key for this room
-                GenerateUniqueKey(true);    
-
+                    //spawn either type of key for this room
+                    GenerateUniqueKey(true);
+                    //TODO: set the keys on enter for the room.
+                }
             }
 
             else
             {
                 //lock the room with extraneous keys
                 Key lockingKey = extraneousKeyList[Random.Range(0, extraneousKeyList.Count)];
-                mainKeyList.Remove(lockingKey);
+                extraneousKeyList.Remove(lockingKey);
                 currentRoom.LockRoom(lockingKey);
 
                 //spawn only extraneous key types
                 GenerateUniqueKey(false);
-
+                //TODO: set the keys on enter for the room.
             }
 
-
-
-
-
-            //update passages with new rooms
+            //create a new room on each passage
             foreach (var passage in currentRoom.GetPassageDirections())
             {
                 roomIndex = GetRoomIndexFromDirection(currentRoom, passage);
                 formedRooms.Add(CreateRoom(roomIndex));
-
-                //For each passage accounted for, add room to: created and appropriate edge list
-                //Remove from unfilled rooms and edge room when all passages are accounted for.
-
-
-                //TODO, add to list and other things..
             }
         }
+
+        List<bool> roomTypes = EnsureOneMainPathway(currentRoom);
+
 
 
         foreach (var room in formedRooms)
         {
+
+            //randomly pick a roomtype from the list and set to the room/update stats for the room.
+
+
+            //For each passage accounted for, add room to appropriate edge list
+            //Remove from unfilled rooms and edge room when all passages are accounted for.
+
+
             if (startRoomCreated)
             {
                 //set start to true
@@ -295,11 +299,6 @@ public class Generator : MonoBehaviour
                 //Add new room to main edge list.
                 mainEdgeRooms.Add(room.GetComponent<Room>());
 
-                //Add to created room list
-                createdRooms.Add(room.GetComponent<Room>());
-
-                //Update unfilled rooms
-                unfilledRooms.Remove(room.GetComponent<Room>().GetRoomNumber());
 
             }
 
@@ -308,44 +307,23 @@ public class Generator : MonoBehaviour
 
             }
 
+            //TODO, add to list and other things..
+            //GenerateRoomType(currentRoom, formedRooms);
+
+            //set each new room as extraneous or main
+
+
+            //Add to created room list
+            createdRooms.Add(room.GetComponent<Room>());
+
+            //Update unfilled rooms
+            unfilledRooms.Remove(room.GetComponent<Room>().GetRoomNumber());
+
+            
+
+
+
         }
-
-
-        /*
-         
-
-        //set end to false - work on this later when we implement the counters for extraneous and main
-        //newRoom.GetComponent<Room>().SetEnd(false);
-
-        
-
-        //Generate 1-3 Unique Keys
-        List<Key> roomKeys = GenerateKeys();
-        foreach (var key in roomKeys)
-        {
-            mainKeyList.Add(key);
-        }
-        
-        //determine if main or extraneous
-        //mainExtraneous = roomToModify.
-
-
-        //lock the room with existing key
-        if (!roomToModify.GetStart())
-        {
-            //roomToModify.LockRoom();
-            //this is NOT the start room = lock it with a key
-        }
-
-        //THEN make new keys. Order is important.
-        
-
-        If on the main path, ensure there is at least 1 main key at all times when creating new keys.
-        
-
-        */
-
-
     }
 
     /**
@@ -358,8 +336,8 @@ public class Generator : MonoBehaviour
          * START OF VARIABLES
          * */
 
-        GameObject newRoomPrefab = null;
         GameObject newRoomGO = null;
+        GameObject newRoomPrefab = null;
 
         List<Direction> passageDirections = null;
         List<Direction> validRoomDirections = null;
@@ -380,33 +358,36 @@ public class Generator : MonoBehaviour
         {
             prefabIndex = Random.Range(0, 8);
             //Debug.Log("prefabindex:" + prefabIndex);
-            newRoomGO = roomPrefabs[prefabIndex];
-            if (newRoomPrefab != null)
+            newRoomPrefab = roomPrefabs[prefabIndex];
+            if (newRoomGO != null)
             {
-                Destroy(newRoomPrefab);
+                Destroy(newRoomGO);
             }
-            newRoomPrefab = Instantiate(newRoomGO, FindRoomPosition(roomIndex), newRoomGO.transform.rotation);
-            passageDirections = newRoomPrefab.GetComponent<Room>().GetPassageDirections();
+            newRoomGO = Instantiate(newRoomPrefab, FindRoomPosition(roomIndex), newRoomPrefab.transform.rotation);
+            passageDirections = newRoomGO.GetComponent<Room>().GetPassageDirections();
 
             validRotationExists = CheckIfValidRotationExists(passageDirections, validRoomDirections);
 
             if (validRotationExists)
             {
                 prefabInvalid = false;
-                Debug.Log("Prefab used: " + newRoomPrefab + " at location: " + roomIndex);
+                Debug.Log("Prefab used: " + newRoomGO + " at location: " + roomIndex);
             }
         }
 
         while (rotationInvalid)
         {
-            rotationInvalid = !CheckIfCorrectOrientation(newRoomPrefab.GetComponent<Room>().GetPassageDirections(), validRoomDirections);
+            rotationInvalid = !CheckIfCorrectOrientation(newRoomGO.GetComponent<Room>().GetPassageDirections(), validRoomDirections);
 
             if (rotationInvalid)
             {
-                RotateRoom(newRoomPrefab);
+                RotateRoom(newRoomGO);
             }
         }
-        return newRoomPrefab;
+
+        newRoomGO.GetComponent<Room>().SetRoomNumber(roomIndex);
+
+        return newRoomGO;
     }
     
     /**
@@ -553,39 +534,58 @@ public class Generator : MonoBehaviour
         return null;
     }
 
-    private List<bool> GenerateRoomTypeFromCurrentRoom(Room currentRoom)
+    private List<bool> EnsureOneMainPathway(Room currentRoom)
     {
         List<bool> roomTypes = new List<bool>();
+        bool oneMainPathway = false;
+        int count = currentRoom.GetPassageDirections().Count;
 
+        while(count > 1)
+        {
+            roomTypes.Add(GenerateRoomType(currentRoom));
+            count--;
+        }
+
+        if(currentRoom.GetMainPath())
+        {
+            roomTypes.Add(true);
+        }
+
+        else
+        {
+            roomTypes.Add(GenerateRoomType(currentRoom));
+        }
+
+        return roomTypes;
+    }
+    
+    private bool GenerateRoomType(Room currentRoom)
+    {
+        bool roomType = false;
 
         //determine main/extraneous
         if (currentRoom.GetMainPath())
         {
             //room is main, can make extraneous or main from here
-
-            //
-            if (mainEdgeRooms.Count > 1)
+            float percentChance = Random.Range(0.0f, 100.0f);
+            float mainThreshold = 65.0f;
+            if (percentChance <= mainThreshold)
             {
-                //if we choose to, we don't need to continue the main path here since we have at least one other branch for main rooms.
+                roomType = true;   
             }
             else
             {
-                //make main rooms
+                roomType = false;
             }
         }
+
         else
         {
             //room is extraneous, can make extraneous only.
-            //for each path?
-
+            roomType = false;
         }
-
-
-
-        return roomTypes;
+        return roomType;
     }
-
-
 
     /**
      * Checks if we can place a new room in this location
