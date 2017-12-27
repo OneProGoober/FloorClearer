@@ -31,6 +31,16 @@ public class Generator : MonoBehaviour
 
     private int extraneousRoomCount = 0;
 
+    private int roomTarget;
+
+    private float lowerBoundSize;
+
+    private float upperBoundSize;
+
+    private int mainRoomFraction;
+
+
+
     /**
      * All GameObjects associated with the game. This includes the main and extraneous keys and rooms + room prefabs
      */
@@ -111,24 +121,30 @@ public class Generator : MonoBehaviour
          * 4. When target is hit or the size of the floor has 3 indices left, call a function called "CreateEndRooms"
          * 
          * */
+        lowerBoundSize = .75f;
+        upperBoundSize = .95f;
+        mainRoomFraction = 3;
 
+        int target;
+        do
+        {
+            target = Random.Range(0, unfilledRooms.Count);
+        } while (target > unfilledRooms.Count*lowerBoundSize);
 
+        roomTarget = target;
 
+        mainRoomCount = roomTarget / mainRoomFraction;
 
-
-
-
-
-
-
+        extraneousRoomCount = roomTarget - mainRoomCount;
+        
         StartCoroutine(GenerateFloor());
 
     }
 
     private IEnumerator GenerateFloor()
     {
-        SetUpStartRoom();
-        
+        //SetUpStartRoom();
+        HandleRoom();
         yield return 0;
     }
 
@@ -145,6 +161,7 @@ public class Generator : MonoBehaviour
      * */
     private void SetUpStartRoom()
     {
+
     }
 
     /**
@@ -313,11 +330,7 @@ public class Generator : MonoBehaviour
         
 
         If on the main path, ensure there is at least 1 main key at all times when creating new keys.
-
-
-
-
-
+        
 
         */
 
