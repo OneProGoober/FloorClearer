@@ -27,11 +27,15 @@ public class Generator : MonoBehaviour
 
     public int levelSeed;
 
+    private int roomTarget;
+
+    private int mainRoomTarget = 0;
+
+    private int extraneousRoomTarget = 0;
+
     private int mainRoomCount = 0;
 
     private int extraneousRoomCount = 0;
-
-    private int roomTarget;
 
     private float lowerBoundSize;
 
@@ -77,6 +81,8 @@ public class Generator : MonoBehaviour
 
     //holds keys that open rooms along the extraneous path
     private List<Key> extraneousKeyList;
+
+    private List<int> createdKeys;
 
     //holds the current room when generating the floor
     //private Room currentRoom;
@@ -133,9 +139,9 @@ public class Generator : MonoBehaviour
 
         roomTarget = target;
 
-        mainRoomCount = roomTarget / mainRoomFraction;
+        mainRoomTarget = roomTarget / mainRoomFraction;
 
-        extraneousRoomCount = roomTarget - mainRoomCount;
+        extraneousRoomTarget = roomTarget - mainRoomTarget;
         
         StartCoroutine(GenerateFloor());
 
@@ -196,12 +202,12 @@ public class Generator : MonoBehaviour
         Room currentRoom = null;
         Room newRoom = new Room();
 
-        List<GameObject> roomsForAllPassages = new List<GameObject>();
+        List<GameObject> formedRooms = new List<GameObject>();
 
         int roomIndex = -1;
         int currentRoomIndex = -1;
 
-        bool startRoom = false;
+        bool startRoomCreated = false;
 
 
         /*
@@ -213,9 +219,9 @@ public class Generator : MonoBehaviour
         if (createdRooms.Count != 0)
         {
             //START ROOM
-            startRoom = true;
+            startRoomCreated = true;
             roomIndex = Random.Range(0, mapSizeX * mapSizeZ);
-            roomsForAllPassages.Add(CreateRoom(roomIndex));
+            formedRooms.Add(CreateRoom(roomIndex));
         }
 
         //NOT START ROOM. NOTE: If start room was just created last CreateRoom(), Random.Range(0,1) will return 0 (the start room).
@@ -230,36 +236,36 @@ public class Generator : MonoBehaviour
 
             currentRoom = GetFilledRoom(currentRoomIndex);
 
+            //GenerateRoomTypeFromCurrentRoom(currentRoom);
 
-
-
-            //determine main/extraneous and update the count
-            if (currentRoom.GetMainPath())
-            {
-                //room must be set to main
-
-                //have bool to spawn end?
-
-            }
-            else
-            {
-                //randomly set to main or extraneous depending on how many rooms are on the edge lists
-
-                if (mainEdgeRooms.Count > 0)
-                {
-
-                }
-                else
-                {
-                    //must spawn main path or end floor creation completely.
-                }
-            }
 
             //lock the room entrance
+            if(currentRoom.GetMainPath())
+            {
+                //can only lock room with mainKeys
+                //remove a random main key from the list.
+                Key lockingKey = mainKeyList[Random.Range(0, mainKeyList.Count)];
+                mainKeyList.Remove(lockingKey);
+                currentRoom.LockRoom(lockingKey);
 
-            //spawn the new keys for the room
+                //spawn either type of key for this room
+                GenerateUniqueKey(true);    
 
-            //generateuniquekey(bool main);
+            }
+
+            else
+            {
+                //lock the room with extraneous keys
+                Key lockingKey = extraneousKeyList[Random.Range(0, extraneousKeyList.Count)];
+                mainKeyList.Remove(lockingKey);
+                currentRoom.LockRoom(lockingKey);
+
+                //spawn only extraneous key types
+                GenerateUniqueKey(false);
+
+            }
+
+
 
 
 
@@ -267,7 +273,7 @@ public class Generator : MonoBehaviour
             foreach (var passage in currentRoom.GetPassageDirections())
             {
                 roomIndex = GetRoomIndexFromDirection(currentRoom, passage);
-                roomsForAllPassages.Add(CreateRoom(roomIndex));
+                formedRooms.Add(CreateRoom(roomIndex));
 
                 //For each passage accounted for, add room to: created and appropriate edge list
                 //Remove from unfilled rooms and edge room when all passages are accounted for.
@@ -278,9 +284,9 @@ public class Generator : MonoBehaviour
         }
 
 
-        foreach (var room in roomsForAllPassages)
+        foreach (var room in formedRooms)
         {
-            if (startRoom)
+            if (startRoomCreated)
             {
                 //set start to true
                 room.GetComponent<Room>().SetStart(true);
@@ -294,6 +300,11 @@ public class Generator : MonoBehaviour
 
                 //Update unfilled rooms
                 unfilledRooms.Remove(room.GetComponent<Room>().GetRoomNumber());
+
+            }
+
+            else
+            {
 
             }
 
@@ -542,13 +553,45 @@ public class Generator : MonoBehaviour
         return null;
     }
 
+    private List<bool> GenerateRoomTypeFromCurrentRoom(Room currentRoom)
+    {
+        List<bool> roomTypes = new List<bool>();
+
+
+        //determine main/extraneous
+        if (currentRoom.GetMainPath())
+        {
+            //room is main, can make extraneous or main from here
+
+            //
+            if (mainEdgeRooms.Count > 1)
+            {
+                //if we choose to, we don't need to continue the main path here since we have at least one other branch for main rooms.
+            }
+            else
+            {
+                //make main rooms
+            }
+        }
+        else
+        {
+            //room is extraneous, can make extraneous only.
+            //for each path?
+
+        }
+
+
+
+        return roomTypes;
+    }
+
 
 
     /**
      * Checks if we can place a new room in this location
      * Returns true if valid
      */
-        private bool CheckIfValidPlacement(int index)
+    private bool CheckIfValidPlacement(int index)
         {
             if(index < 0 || index >= mapSizeX*mapSizeZ)
             {
@@ -610,72 +653,53 @@ public class Generator : MonoBehaviour
         {
             Key newKey = GenerateUniqueKey(true);
             keyList.Add(newKey);
-            //mainKeyList.Add(newKey);
         }
 
         return keyList;
     }
 
 
-
-
-
-    private bool RandomizeMainExtraneous()
-    {
-        float percentChance = Random.Range(0.0f, 100.0f);
-        if (percentChance <= 5 /*mainThreshold*/) //some % chance that the key is main/extraneous
-        {
-            //make a main key
-        }
-
-        return false;
-    }
-
-
-
-
     /**
      * Generate Random Key
+     * -ensures key is unique and sets it to main or extraneous
+     * 
      * */
     public Key GenerateUniqueKey(bool main)
     {
         Key uniqueKey = new Key();
-        int keyNumber = Random.Range(0, mapSizeX * mapSizeX * mapSizeZ);
-
-        if(main)
+        int keyNumber;
+        do
         {
+            keyNumber = Random.Range(0, mapSizeX * mapSizeX * mapSizeZ);
+
+        } while (!createdKeys.Contains(keyNumber));
+
+        createdKeys.Add(keyNumber);
+        //Unique Keynumber obtained.
+
+        if (main)
+        {
+            //can be either main or extraneous
             float percentChance = Random.Range(0.0f, 100.0f);
-            if(percentChance <= 5 /*mainThreshold*/) //some % chance that the key is main/extraneous
+            float mainThreshold = 65.0f;
+            if(percentChance <= mainThreshold)
             {
-                //make a main key
+                //maintrheshold chance that we make a main key
+                uniqueKey.SetKeyStats(keyNumber, main);
             }
             else
             {
                 //make an extraneous key
+                uniqueKey.SetKeyStats(keyNumber, false);
             }
-
-            //can generate main and extraneous
         }
 
         else
         {
+            uniqueKey.SetKeyStats(keyNumber, main);
             //only extraneous keys
         }
-        uniqueKey.SetKeyStats(keyNumber, main);
 
-        if(mainKeyList.Contains(uniqueKey) || extraneousKeyList.Contains(uniqueKey))
-        {
-            // need to do in while... GenerateUniqueKey(main);
-        }
-        else
-        {
-            //it's unique.
-        }
-
-
-
-        //TODO
-        //ensure that it is unique. Set extraneous or main.
         return uniqueKey;
     }
 }

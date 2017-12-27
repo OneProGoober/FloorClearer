@@ -34,6 +34,11 @@ public class Room : MonoBehaviour
         //SetEnd();
     }
 
+    public void LockRoom(Key lockingKey)
+    {
+        this.keyToUnlock = lockingKey;
+    }
+
     public List<Generator.Direction> GetPassageDirections()
     {
         return passageDirections;
